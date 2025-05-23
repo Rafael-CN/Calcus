@@ -1,11 +1,11 @@
 import { createContext, useState } from "react";
 import {
 	hasOperation,
-	isOperation,
-	isSpecial,
+	isSpecial, // isOperation is not used directly in this file anymore
 	toDisplay,
 	toOperation,
 } from "../utils/Utils";
+import { Parser } from "expr-eval"; // Import Parser from expr-eval
 
 export const TaskContext = createContext();
 export const TaskContextProvider = ({ children }) => {
@@ -44,32 +44,56 @@ export const TaskContextProvider = ({ children }) => {
 		evalString = toOperation(evalString);
 
 		try {
-			const result = eval(evalString);
-			setTask(toDisplay(result));
+			// Use expr-eval Parser
+			const parser = new Parser();
+			const expr = parser.parse(evalString);
+			const result = expr.evaluate(); // No need for context object {} if no variables
+
+			// Check for NaN or Infinity, which can result from operations like 0/0 or 1/0
+			if (isNaN(result) || !isFinite(result)) {
+				setTask("Error"); // Or "NaN", "Infinity", "Division by zero"
+			} else {
+				setTask(toDisplay(String(result))); // Ensure result is string before toDisplay
+			}
 		} catch (e) {
-			setTask("0");
+			// Catch errors from parser.parse (e.g., syntax error) or expr.evaluate()
+			console.error("Calculation error:", e.message);
+			setTask("Error"); // Display a generic error message
 		}
 
 		setDidTask(true);
 	};
 
 	const addDigit = (e) => {
-		let newTask = task + e.toString();
+		const newDigit = e.toString();
+		let newTask = task + newDigit;
 
-		if ((task === "0" || didTask) && !isNaN(e)) newTask = e;
-		if (isSpecial(task[task.length - 1]) && isSpecial(e)) {
-			newTask = task.slice(0, -1) + e.toString();
+		// If current task is "0" or calculation was just done, and new digit is a number, start new task
+		if ((task === "0" || didTask) && !isNaN(parseFloat(newDigit)) && isFinite(newDigit)) {
+			newTask = newDigit;
+		} 
+		// If last char in task and new digit are both special characters (operators, comma)
+		// replace the last special character with the new one.
+		else if (isSpecial(task[task.length - 1]) && isSpecial(newDigit)) {
+			// Allow specific sequences like '*-' or '/-' (for negative numbers)
+			// This logic might need to be more sophisticated depending on desired input behavior
+			if (newDigit === '-' && (task.endsWith('*') || task.endsWith('/'))) {
+				// Allow expressions like 2*-3 or 10/-2
+			} else {
+				newTask = task.slice(0, -1) + newDigit;
+			}
 		}
-		if (e === ",") {
-			const split = task.split(/[×÷+−^]+/);
-			let lastNumber = split[split.length - 1];
-			if (lastNumber === "") lastNumber = split[split.length - 2];
-
-			if (lastNumber.indexOf(",") > -1) newTask = task;
+		// Handle comma input: only one comma per number segment
+		else if (newDigit === ",") {
+			const segments = task.split(/[×÷+−^]+/);
+			const currentNumberSegment = segments[segments.length - 1];
+			if (currentNumberSegment.includes(",")) {
+				newTask = task; // Do not add another comma if one already exists in the current number
+			}
 		}
 
 		setDidTask(false);
-		setTask(newTask.toString());
+		setTask(newTask);
 	};
 
 	return (

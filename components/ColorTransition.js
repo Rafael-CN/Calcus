@@ -10,9 +10,9 @@ import { Animated } from "react-native";
 import { ThemeContext } from "../contexts/ThemeContext";
 
 const ColorTransition = (props, ref) => {
-	const size = 1000;
+	const size = 1000; // This might need to be screen width if the animation is to cover the screen
 
-	const [leftAnim] = useState(new Animated.Value(-size));
+	const [translateXAnim] = useState(new Animated.Value(-size)); // Renamed for clarity
 	const { theme } = useContext(ThemeContext);
 
 	const [lastBg, setLastBg] = useState(theme.background);
@@ -25,10 +25,11 @@ const ColorTransition = (props, ref) => {
 	});
 
 	useEffect(() => {
+		// backgroundColor animation cannot use native driver
 		Animated.timing(bgAnim, {
 			toValue: 1,
 			duration: 250,
-			useNativeDriver: false,
+			useNativeDriver: false, 
 		}).start(() => {
 			setLastBg(nextBg);
 			Animated.timing(bgAnim, {
@@ -53,20 +54,20 @@ const ColorTransition = (props, ref) => {
 
 		setAvailable(false);
 		Animated.sequence([
-			Animated.timing(leftAnim, {
+			Animated.timing(translateXAnim, {
 				toValue: 0,
 				duration: 500,
-				useNativeDriver: false,
+				useNativeDriver: true, // Now using native driver for transform
 			}),
-			Animated.timing(leftAnim, {
-				toValue: 400,
+			Animated.timing(translateXAnim, {
+				toValue: 400, // This value might need to be responsive (e.g. screenWidth)
 				duration: 350,
-				useNativeDriver: false,
+				useNativeDriver: true, // Now using native driver for transform
 			}),
-			Animated.timing(leftAnim, {
-				toValue: -size,
+			Animated.timing(translateXAnim, {
+				toValue: -size, // Reset position off-screen
 				duration: 0,
-				useNativeDriver: false,
+				useNativeDriver: true, // Now using native driver for transform
 			}),
 		]).start(() => {
 			setAvailable(true);
@@ -78,12 +79,13 @@ const ColorTransition = (props, ref) => {
 			style={{
 				height: 1000,
 				width: size,
-				backgroundColor: bgColor,
+				backgroundColor: bgColor, // Animated on JS thread
 				position: "absolute",
 				top: 0,
-				left: leftAnim,
+				// left: 0, // Initial position set to 0 as translateX will handle movement
+				transform: [{ translateX: translateXAnim }], // Use translateX for animation
 				zIndex: 10,
-				borderRadius: 50,
+				borderRadius: 50, // This might need to be size/2 for a circle
 			}}
 		></Animated.View>
 	);
