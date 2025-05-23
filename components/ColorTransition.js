@@ -25,20 +25,25 @@ const ColorTransition = (props, ref) => {
 	});
 
 	useEffect(() => {
-		// backgroundColor animation cannot use native driver
-		Animated.timing(bgAnim, {
-			toValue: 1,
-			duration: 250,
-			useNativeDriver: false, 
-		}).start(() => {
-			setLastBg(nextBg);
+		Animated.sequence([
 			Animated.timing(bgAnim, {
+				toValue: 1,
+				duration: 250,
+				useNativeDriver: false, // Explicitly false for backgroundColor
+			}),
+			// No delay needed here, the reset should be quick.
+			// If issues arise, Animated.delay could be inserted.
+			Animated.timing(bgAnim, { // This animation resets the value
 				toValue: 0,
-				duration: 0,
-				useNativeDriver: false,
-			}).start();
+				duration: 0, // Instant reset
+				useNativeDriver: false, // Explicitly false
+			})
+		]).start(() => {
+			// This callback is for the whole sequence
+			setLastBg(nextBg);
+			// bgAnim is already reset to 0 by the sequence.
 		});
-	}, [theme]);
+	}, [theme, nextBg]);
 
 	useImperativeHandle(ref, () => ({
 		doEffect: () => {
