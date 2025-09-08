@@ -1,5 +1,5 @@
 import * as NavigationBar from "expo-navigation-bar";
-import { StyleSheet, View } from "react-native";
+import { StyleSheet, View, Text } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import Result from "./components/Result";
 import Digit from "./components/Digit";
@@ -7,13 +7,13 @@ import Digit from "./components/Digit";
 import { TaskContext } from "./contexts/TaskContext";
 import { useContext } from "react";
 import { ThemeContext } from "./contexts/ThemeContext";
-import { AntDesign, FontAwesome5 } from "@expo/vector-icons";
+import { AntDesign } from "@expo/vector-icons";
 
 export default function Calculator() {
-	const { theme, colors } = useContext(ThemeContext);
-	NavigationBar.setBackgroundColorAsync(theme.background);
+	const { theme } = useContext(ThemeContext);
+	const { resetTask, removeLastDigit, doTask, addDigit } = useContext(TaskContext); 
 
-	const { resetTask, removeLastDigit, doTask } = useContext(TaskContext);
+	NavigationBar.setBackgroundColorAsync(theme.background);
 
 	const styles = StyleSheet.create({
 		container: {
@@ -21,69 +21,78 @@ export default function Calculator() {
 			backgroundColor: theme.background,
 			alignItems: "center",
 			justifyContent: "flex-end",
-			paddingBottom: 10,
+			paddingBottom: "2%", 
 		},
 
 		mainSection: {
 			display: "flex",
 			flexDirection: "row",
-			zIndex: -1,
+			zIndex: -1, 
+			width: "100%",
+			justifyContent: "center",
 		},
-
+		leftSection: {
+			flex: 3,
+			flexDirection: "column",
+		},
+		rightSection: {
+			flex: 1,
+			flexDirection: "column",
+		},
 		numberLine: {
 			display: "flex",
 			flexDirection: "row",
+			justifyContent: "space-around",
 		},
 	});
 
 	return (
 		<View style={styles.container}>
-			<StatusBar style="light"></StatusBar>
+			<StatusBar style="light" />
 
-			<Result></Result>
+			<Result />
 
 			<View style={styles.mainSection}>
 				<View style={styles.leftSection}>
 					<View style={styles.numberLine}>
-						<Digit text="C" style={colors.INVERTED} onPress={resetTask}></Digit>
+						<Digit text="C" buttonStyle={theme.buttons.inverted} onPress={resetTask} />
+						<Digit text="E" buttonStyle={theme.buttons.inverted} onPress={removeLastDigit} />
 						<Digit
-							text="E"
-							style={colors.INVERTED}
-							onPress={removeLastDigit}
-						></Digit>
-						<Digit
-							text={<AntDesign name="up" size={24} />}
+							text={<Text><AntDesign name="up" size={24} /></Text>}
 							value="^"
-							style={colors.INVERTED}
-						></Digit>
+							buttonStyle={theme.buttons.inverted}
+							onPress={() => addDigit("^")}
+						/>
 					</View>
 
 					{[
-						[7, 8, 9],
-						[4, 5, 6],
-						[1, 2, 3],
-					].map((l, i) => {
-						return (
-							<View style={styles.numberLine} key={i}>
-								{l.map((n, i) => {
-									return <Digit key={i} text={n}></Digit>;
-								})}
-							</View>
-						);
-					})}
+						[7, 8, 9], 
+						[4, 5, 6], 
+						[1, 2, 3], 
+					].map((numberRow, rowIndex) => (
+						<View style={styles.numberLine} key={`row-${rowIndex}`}>
+							{numberRow.map((number) => (
+								<Digit
+									key={number}
+									text={String(number)}
+									buttonStyle={theme.buttons.default}
+								/>
+							))}
+						</View>
+					))}
 
 					<View style={styles.numberLine}>
-						<Digit text="0" size={2}></Digit>
-						<Digit text=","></Digit>
+						<Digit text="0" size={2} buttonStyle={theme.buttons.default} />
+						<Digit text="," value="." buttonStyle={theme.buttons.default} />
 					</View>
 				</View>
 
 				<View style={styles.rightSection}>
-					<Digit text="÷" style={colors.INVERTED}></Digit>
-					<Digit text="×" style={colors.INVERTED}></Digit>
-					<Digit text="+" style={colors.INVERTED}></Digit>
-					<Digit text="−" style={colors.INVERTED}></Digit>
-					<Digit text="=" style={colors.INVERTED} onPress={doTask}></Digit>
+					<Digit text="÷" value="/" buttonStyle={theme.buttons.inverted} />
+					<Digit text="×" value="*" buttonStyle={theme.buttons.inverted} />
+					<Digit text="+" value="+" buttonStyle={theme.buttons.inverted} />
+					<Digit text="−" value="-" buttonStyle={theme.buttons.inverted} />
+					<Digit text="=" buttonStyle={theme.buttons.inverted} onPress={doTask} />
 				</View>
 			</View>
 		</View>

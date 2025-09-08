@@ -10,9 +10,9 @@ import { Animated } from "react-native";
 import { ThemeContext } from "../contexts/ThemeContext";
 
 const ColorTransition = (props, ref) => {
-	const size = 1000;
+	const size = 1000; // This might need to be screen width if the animation is to cover the screen
 
-	const [leftAnim] = useState(new Animated.Value(-size));
+	const [translateXAnim] = useState(new Animated.Value(-size)); // Renamed for clarity
 	const { theme } = useContext(ThemeContext);
 
 	const [lastBg, setLastBg] = useState(theme.background);
@@ -25,19 +25,25 @@ const ColorTransition = (props, ref) => {
 	});
 
 	useEffect(() => {
-		Animated.timing(bgAnim, {
-			toValue: 1,
-			duration: 250,
-			useNativeDriver: false,
-		}).start(() => {
-			setLastBg(nextBg);
+		Animated.sequence([
 			Animated.timing(bgAnim, {
+				toValue: 1,
+				duration: 250,
+				useNativeDriver: false, // Explicitly false for backgroundColor
+			}),
+			// No delay needed here, the reset should be quick.
+			// If issues arise, Animated.delay could be inserted.
+			Animated.timing(bgAnim, { // This animation resets the value
 				toValue: 0,
-				duration: 0,
-				useNativeDriver: false,
-			}).start();
+				duration: 0, // Instant reset
+				useNativeDriver: false, // Explicitly false
+			})
+		]).start(() => {
+			// This callback is for the whole sequence
+			setLastBg(nextBg);
+			// bgAnim is already reset to 0 by the sequence.
 		});
-	}, [theme]);
+	}, [theme, nextBg]);
 
 	useImperativeHandle(ref, () => ({
 		doEffect: () => {
@@ -53,20 +59,20 @@ const ColorTransition = (props, ref) => {
 
 		setAvailable(false);
 		Animated.sequence([
-			Animated.timing(leftAnim, {
+			Animated.timing(translateXAnim, {
 				toValue: 0,
 				duration: 500,
-				useNativeDriver: false,
+				useNativeDriver: true, // Now using native driver for transform
 			}),
-			Animated.timing(leftAnim, {
-				toValue: 400,
+			Animated.timing(translateXAnim, {
+				toValue: 400, // This value might need to be responsive (e.g. screenWidth)
 				duration: 350,
-				useNativeDriver: false,
+				useNativeDriver: true, // Now using native driver for transform
 			}),
-			Animated.timing(leftAnim, {
-				toValue: -size,
+			Animated.timing(translateXAnim, {
+				toValue: -size, // Reset position off-screen
 				duration: 0,
-				useNativeDriver: false,
+				useNativeDriver: true, // Now using native driver for transform
 			}),
 		]).start(() => {
 			setAvailable(true);
@@ -78,12 +84,13 @@ const ColorTransition = (props, ref) => {
 			style={{
 				height: 1000,
 				width: size,
-				backgroundColor: bgColor,
+				backgroundColor: bgColor, // Animated on JS thread
 				position: "absolute",
 				top: 0,
-				left: leftAnim,
+				// left: 0, // Initial position set to 0 as translateX will handle movement
+				transform: [{ translateX: translateXAnim }], // Use translateX for animation
 				zIndex: 10,
-				borderRadius: 50,
+				borderRadius: 50, // This might need to be size/2 for a circle
 			}}
 		></Animated.View>
 	);
